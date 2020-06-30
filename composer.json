@@ -1,0 +1,13 @@
+{
+    "name": "Eloso Content",
+    "type": "drupal-module",
+    "description": "Content creation on install.",
+    "keywords": [
+    ],
+    "homepage": "https://github.com/eloso-uk/d8_eloso_content",
+    "minimum-stability": "dev",
+    "support": {
+        "issues": "https://github.com/eloso-uk/d8_eloso_content/issues",
+        "source": "https://github.com/eloso-uk/d8_eloso_content"
+    }
+}

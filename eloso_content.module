@@ -1,0 +1,148 @@
+<?php
+
+/**
+ * @file
+ * Contains eloso_content.module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\menu_link_content\Entity\MenuLinkContent;
+
+
+
+/**
+ * Implements hook_help().
+ */
+function eloso_content_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the eloso_content module.
+    case 'help.page.eloso_content':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('Content creation on install.') . '</p>';
+      return $output;
+
+    default:
+  }
+}
+
+/**
+ * Implements hook_install().
+ */
+function eloso_content_install($is_syncing) {
+
+  //Menus
+  eloso_content_add_menu('MenuName','Weight');
+
+  // Pages
+  eloso_content_add_content('NODETYPE', eloso_content_content() , NULL);
+
+
+
+}
+
+function eloso_content_add_content($node_type,$data,$menu){
+
+  $menu_weight = 1;
+
+
+  foreach($data as $content){
+
+
+    $data = [
+      'type' =>$node_type,
+      'title' =>  $content['name'],
+      'uid' => 1,
+      'body'=>['value' => 'body', 'format' => 'full_html'],
+    ];
+
+    if(isset( $content['field'] )){
+      $data[$content['field']] = $content['content'];
+    }
+
+
+    $node = Drupal::entityTypeManager()
+      ->getStorage('node')
+      ->create($data);
+    $node->save();
+
+    // Path Alias
+    $source = '/node/' . $node->get('nid')->value;
+    \Drupal::service('path.alias_storage')->save($source,'/'.$content['path'] , 'en');
+
+    // Menu
+    if(isset($menu)){
+      MenuLinkContent::create([
+        'title' => $data['name'],
+        'link' => ['uri' => 'entity:node/'.$node->get('nid')->value],
+        'menu_name' => $menu,
+        'weight' => $menu_weight,
+      ])->save();
+      $menu_weight ++;
+    }
+
+  }
+
+}
+
+// Add paragraphs.
+function eloso_content_create_paragraph($nid, $content, $fid = FALSE) {
+
+  $node = entity_load('node', $nid);
+  $paragraph = Paragraph::create(['type' => 'PARAGRAPH_TYPE',]);
+  $paragraph->set('TEXT_FIELD_NAME', $content);
+  if ($fid) {
+    $file = file_load($fid);
+    $paragraph->set('IMAGE_FIELD_NAME', $file);
+  }
+  $paragraph->isNew();
+  $paragraph->save();
+
+  // Grab any existing paragraphs from the node, and add this one
+  $current = $node->get('NODE_FIELD_NAME')->getValue();
+  $current[] = array(
+    'target_id' => $paragraph->id(),
+    'target_revision_id' => $paragraph->getRevisionId(),
+  );
+  $node->set('NODE_FIELD_NAME', $current);
+  $node->save();
+}
+
+/**
+ * Return Page Content
+ */
+function eloso_content_page_content() {
+
+  $pages = [
+
+    [
+      'name'=>'About',
+      'path'=>'about'
+    ],
+
+  ];
+
+  return $pages;
+
+}
+
+/**
+ * Return FAQs
+ */
+function eloso_content_content() {
+
+  $faq = [
+
+    [
+      'name'=>'Name',
+      'content'=>['Content'],
+      'path'=>'path',
+      'field'=>'body'
+    ],
+
+
+  ];
+
+  return $faq;
+
+}
